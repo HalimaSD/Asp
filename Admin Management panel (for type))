@@ -1,0 +1,237 @@
+ <!--Type control-->
+
+     <div>
+       
+      
+        
+        <asp:Label ID="Label3" runat="server" Text="TYPE" CssClass="align-content-center"></asp:Label>
+        <table>
+            <tr>
+                <td>
+                    <asp:Label ID="lbltypeid" runat="server" Text="TYPE ID"></asp:Label>
+                </td>
+                <td>
+                    <asp:TextBox ID="txttypeId" runat="server" CssClass="form-control" Enabled="false" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <asp:Label ID="lbltypename" runat="server" Text="Type Name"></asp:Label>
+                </td>
+                <td>
+                    <asp:TextBox ID="txtTypeName" runat="server" CssClass="form-control"></asp:TextBox>
+                    <asp:RequiredFieldValidator ID="rfvtypeName" runat="server" Text="*"
+                        ControlToValidate="txttypeName" ForeColor="Red" ValidationGroup="vgAdd" />
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="2">
+                    <asp:Button ID="btnInsert_Type" runat="server" OnClick="Insert_Type_Click"
+                        Text="Insert" ValidationGroup="vgAdd" CssClass="btn btn-outline-primary" />
+
+                    <asp:Button ID="btnUpdate_type" runat="server" OnClick="Update_type_Click"
+                        Text="Update" ValidationGroup="vgAdd" CssClass="btn btn-outline-warning" />
+
+                    <asp:Button ID="btnDelete_Type" runat="server" OnClick="Delete_Type_Click"
+                       OnClientClick="return confirm('Are you sure you want to delete this Location?')"
+                        CssClass="btn btn-outline-danger" Text="Delete" ValidationGroup="vgAdd" />
+                    <asp:Button ID="btnCancel_type" runat="server" OnClick="Cancel_type_Click" 
+                        Text="Cancel" CausesValidation="false" CssClass="btn btn-outline-success" />
+                </td>
+            </tr>
+        </table>
+        <br />
+         <asp:Label ID="Label2" runat="server" Text=" " CssClass="text-success"></asp:Label>
+        <hr />
+      
+        <asp:GridView ID="gridloc" DataKeyNames="TYPE_ID" AutoGenerateColumns="false"
+            AllowPaging="true" PageSize="3" OnPageIndexChanging="gridloc_PageIndexChanging" 
+             OnSelectedIndexChanged="gridloc_SelectedIndexChanged"
+            Width="500" runat="server">
+            <HeaderStyle BackColor="#9a9a9a" ForeColor="White" Font-Bold="true" Height="30" />
+            <AlternatingRowStyle BackColor="#f5f5f5" />
+            <Columns>
+                <asp:TemplateField>
+                    <ItemTemplate>
+                        <asp:LinkButton ID="lbtnSelect" runat="server"
+                            CssClass="btn btn-outline-info" CommandName="Select" Text="Select" />
+                    </ItemTemplate>
+                </asp:TemplateField>
+                <asp:TemplateField HeaderText="Type Name">
+                    <ItemTemplate>
+                        
+                        <asp:Label ID="lbllocName" Text='<%#Eval("TYPE_NAME")%>'
+                            runat="server" />
+                    </ItemTemplate>
+                </asp:TemplateField>
+            </Columns>
+        </asp:GridView>
+    </div>
+
+<!-- behind code-->
+
+
+ Private Sub BindTypeData()
+        Dim sqlCon As New SqlConnection(_conString)
+        Dim cmd As New SqlCommand()
+        cmd.CommandType = CommandType.Text
+        cmd.CommandText = "SELECT * FROM TYPE"
+        cmd.Connection = sqlCon
+        Dim da As New SqlDataAdapter(cmd)
+
+        Dim dt As New DataTable
+        Using (da)
+
+            da.Fill(dt)
+        End Using
+
+        gridloc.DataSource = dt
+        gridloc.DataBind()
+    End Sub
+
+
+
+ Protected Sub gridloc_PageIndexChanging(sender As Object, e As GridViewPageEventArgs)
+        gridloc.PageIndex = e.NewPageIndex
+        BindTypeData()
+    End Sub
+
+    Protected Sub gridloc_SelectedIndexChanged(sender As Object, e As EventArgs)
+
+        txttypeId.Text = gridloc.DataKeys(gridloc.SelectedRow.RowIndex).Value.ToString()
+        txtTypeName.Text = (TryCast(gridloc.SelectedRow.FindControl("lbllocname"), Label)).Text
+    End Sub
+
+    Protected Sub Insert_Type_Click(sender As Object, e As EventArgs)
+
+
+        Dim IsAdded As Boolean = False
+
+        Dim con1 As New SqlConnection(_conString)
+        Dim cmd1 As New SqlCommand()
+        cmd1.CommandType = CommandType.Text
+        cmd1.Connection = con1
+
+        cmd1.CommandText = "select TYPE_NAME from TYPE where TYPE_NAEM=@tname”
+
+        cmd1.Parameters.AddWithValue("@tname", txtTypeName.Text.Trim())
+
+        Dim myReader As SqlDataReader
+        con1.Open()
+        myReader = cmd1.ExecuteReader
+
+
+        If (myReader.HasRows) Then
+            lblMsg.Text = "Type Already Exist, Please insert Another"
+            lblMsg.ForeColor = System.Drawing.Color.Red
+            txtTypeName.Focus()
+        Else
+
+            myReader.Close()
+
+
+            Dim Typename As String = txtTypeName.Text
+            Dim sqlCon As New SqlConnection(_conString)
+            Dim cmd As New SqlCommand()
+
+            cmd.CommandType = CommandType.Text
+            cmd.CommandText = "insert into TYPE (TYPE_NAME) values (@tname)"
+
+            cmd.Parameters.AddWithValue("@tname", Typename)
+
+            cmd.Connection = sqlCon
+            sqlCon.Open()
+
+            IsAdded = cmd.ExecuteNonQuery() > 0
+            sqlCon.Close()
+            If IsAdded Then
+                lblMsg.Text = "'" & Typename & "'  Type added successfully!"
+                lblMsg.ForeColor = System.Drawing.Color.Green
+
+            Else
+                lblMsg.Text = "Error while adding '" & Typename & "'  Type"
+                lblMsg.ForeColor = System.Drawing.Color.Red
+            End If
+        End If
+        ResetAll()
+
+
+    End Sub
+
+    Protected Sub Delete_Type_Click(sender As Object, e As EventArgs)
+
+        If String.IsNullOrEmpty(txttypeId.Text) Then
+            lblMsg.Text = "Please select record to delete"
+            lblMsg.ForeColor = System.Drawing.Color.Red
+            Return
+        End If
+        Dim IsDeleted As Boolean = False
+        Dim TID As Integer = Convert.ToInt32(txttypeId.Text)
+
+        Dim TNAME As String = txtTypeName.Text
+        Dim sqlCon As New SqlConnection(_conString)
+        Dim cmd As New SqlCommand()
+        cmd.CommandType = CommandType.Text
+
+        cmd.CommandText = "delete from TYPE where TYPE_ID=@TID"
+
+        cmd.Parameters.AddWithValue("@TID", TID)
+        cmd.Connection = sqlCon
+        sqlCon.Open()
+
+        IsDeleted = cmd.ExecuteNonQuery()
+        sqlCon.Close()
+        If IsDeleted Then
+            lblMsg.Text = "'" & TNAME & "' Type deleted successfully!"
+            lblMsg.ForeColor = System.Drawing.Color.Green
+
+        Else
+            lblMsg.Text = "Error while deleting '" & TNAME & "' Type"
+            lblMsg.ForeColor = System.Drawing.Color.Red
+        End If
+        ResetAll()
+
+    End Sub
+
+    Protected Sub Update_type_Click(sender As Object, e As EventArgs)
+
+        If String.IsNullOrEmpty(txttypeId.Text) Then
+            lblMsg.Text = "Please select record to update"
+            lblMsg.ForeColor = System.Drawing.Color.Red
+            Return
+        End If
+        Dim IsUpdated As Boolean = False
+        Dim TID As Integer = Convert.ToInt32(txttypeId.Text)
+
+        Dim Typename As String = txtTypeName.Text.Trim()
+        Dim sqlCon As New SqlConnection(_conString)
+        Dim cmd As New SqlCommand()
+        cmd.CommandType = CommandType.Text
+
+        cmd.CommandText = "update TYPE set TYPE_NAME=@Tname where TYPE_ID=@TID"
+
+        cmd.Parameters.AddWithValue("@Tname", Typename)
+        cmd.Parameters.AddWithValue("@TID", TID)
+        cmd.Connection = sqlCon
+        sqlCon.Open()
+
+        IsUpdated = cmd.ExecuteNonQuery() > 0
+        sqlCon.Close()
+        If IsUpdated Then
+            lblMsg.Text = "'" & Typename & "' Type updated successfully!"
+            lblMsg.ForeColor = System.Drawing.Color.Green
+
+        Else
+            lblMsg.Text = "Error while updating '" & Typename & "'  Type"
+            lblMsg.ForeColor = System.Drawing.Color.Red
+        End If
+
+        ResetAll()
+
+
+    End Sub
+
+    Protected Sub Cancel_type_Click(sender As Object, e As EventArgs)
+        ResetAll()
+    End Sub
